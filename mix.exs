@@ -42,11 +42,11 @@ defmodule CrucibleBench.MixProject do
     [
       name: "crucible_bench",
       description: description(),
-      files: ~w(lib mix.exs README.md LICENSE),
+      files: ~w(lib mix.exs README.md CHANGELOG.md LICENSE),
       licenses: ["MIT"],
       links: %{
         "GitHub" => @source_url,
-        "Online documentation" => "https://hexdocs.pm/bench"
+        "Online documentation" => "https://hexdocs.pm/crucible_bench"
       },
       maintainers: ["nshkrdotcom"]
     ]
