@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/crucible_bench.svg" alt="Bench" width="150"/>
+</p>
+
 # CrucibleBench - Statistical Testing Framework for AI Research
 
 A comprehensive statistical testing framework designed specifically for AI/ML research in Elixir. CrucibleBench provides rigorous statistical tests, effect size measures, power analysis, and publication-ready reporting.
