@@ -4,6 +4,11 @@
 
 # CrucibleBench
 
+[![Elixir](https://img.shields.io/badge/elixir-1.14+-purple.svg)](https://elixir-lang.org)
+[![Hex.pm](https://img.shields.io/hexpm/v/crucible_bench.svg)](https://hex.pm/packages/crucible_bench)
+[![Documentation](https://img.shields.io/badge/docs-hexdocs-purple.svg)](https://hexdocs.pm/crucible_bench)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/North-Shore-AI/crucible_bench/blob/main/LICENSE)
+
 **Statistical Testing Framework for AI Research**
 
 A comprehensive statistical testing framework designed specifically for AI/ML research in Elixir. CrucibleBench provides rigorous statistical tests, effect size measures, power analysis, and publication-ready reporting.
