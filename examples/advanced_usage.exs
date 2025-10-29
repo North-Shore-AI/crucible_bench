@@ -178,7 +178,7 @@ IO.puts("8. Custom Analysis Pipeline")
 # Function to perform complete analysis
 analyze_experiment = fn control, treatment, name ->
   # Test normality
-  control_normal = Analysis.compare_groups(control, control, check_assumptions: true)
+  _control_normal = Analysis.compare_groups(control, control, check_assumptions: true)
   # Note: In real use, you'd check skewness/kurtosis properly
 
   # Select and run test

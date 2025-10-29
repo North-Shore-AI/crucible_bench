@@ -2,7 +2,7 @@
 
 # Load Bench
 alias CrucibleBench
-alias CrucibleBench.{Stats, Export}
+alias CrucibleBench.Export
 
 IO.puts("=== Basic Statistical Tests ===\n")
 
