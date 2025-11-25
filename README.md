@@ -37,7 +37,7 @@ Add `crucible_bench` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:crucible_bench, "~> 0.1.0"}
+    {:crucible_bench, "~> 0.2.0"}
   ]
 end
 ```
@@ -879,7 +879,14 @@ MIT License - see [LICENSE](https://github.com/North-Shore-AI/crucible_bench/blo
 
 ## Changelog
 
-### v0.1.0 (Current)
+### v0.2.0 (Current)
+- Complete statistical testing framework with parametric and non-parametric coverage using accurate distribution functions
+- Expanded effect size suite with paired measures, eta/omega squared, and rank-biserial correlation plus interpretation guidance
+- Analytical and bootstrap confidence intervals and power analysis with actionable recommendations
+- High-level helpers for automatic test selection and experiment DSL for A/B tests, ablations, and hyperparameter sweeps
+- Publication-ready exports to Markdown, LaTeX, and HTML with standardized result metadata
+
+### v0.1.0
 - Initial release with comprehensive statistical testing framework
 - Support for parametric and non-parametric tests
 - Effect size calculations and power analysis
