@@ -146,7 +146,12 @@ defmodule CrucibleBench.Stats do
     m = mean(values)
     sd = stdev(values)
 
-    Enum.map(values, fn x -> (x - m) / sd end)
+    if is_nil(sd) or sd == 0.0 do
+      # All values identical or insufficient variance
+      Enum.map(values, fn _ -> 0.0 end)
+    else
+      Enum.map(values, fn x -> (x - m) / sd end)
+    end
   end
 
   @doc """
@@ -163,12 +168,17 @@ defmodule CrucibleBench.Stats do
     m = mean(values)
     sd = stdev(values)
 
-    sum_cubed =
-      Enum.reduce(values, 0, fn x, acc ->
-        acc + :math.pow((x - m) / sd, 3)
-      end)
+    if is_nil(sd) or sd == 0.0 do
+      # Zero variance implies perfectly symmetric distribution
+      0.0
+    else
+      sum_cubed =
+        Enum.reduce(values, 0, fn x, acc ->
+          acc + :math.pow((x - m) / sd, 3)
+        end)
 
-    n / ((n - 1) * (n - 2)) * sum_cubed
+      n / ((n - 1) * (n - 2)) * sum_cubed
+    end
   end
 
   @doc """
@@ -185,16 +195,21 @@ defmodule CrucibleBench.Stats do
     m = mean(values)
     sd = stdev(values)
 
-    sum_fourth =
-      Enum.reduce(values, 0, fn x, acc ->
-        acc + :math.pow((x - m) / sd, 4)
-      end)
+    if is_nil(sd) or sd == 0.0 do
+      # Degenerate distribution; treat excess kurtosis as 0
+      0.0
+    else
+      sum_fourth =
+        Enum.reduce(values, 0, fn x, acc ->
+          acc + :math.pow((x - m) / sd, 4)
+        end)
 
-    numerator = n * (n + 1) * sum_fourth
-    denominator = (n - 1) * (n - 2) * (n - 3)
-    correction = 3 * :math.pow(n - 1, 2) / ((n - 2) * (n - 3))
+      numerator = n * (n + 1) * sum_fourth
+      denominator = (n - 1) * (n - 2) * (n - 3)
+      correction = 3 * :math.pow(n - 1, 2) / ((n - 2) * (n - 3))
 
-    numerator / denominator - correction
+      numerator / denominator - correction
+    end
   end
 
   @doc """
@@ -237,7 +252,7 @@ defmodule CrucibleBench.Stats do
 
     denominator = :math.sqrt(sum_sq_x * sum_sq_y)
 
-    if denominator == 0 do
+    if denominator == 0.0 do
       0.0
     else
       numerator / denominator

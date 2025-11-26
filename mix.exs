@@ -1,7 +1,7 @@
 defmodule CrucibleBench.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.2.1"
   @source_url "https://github.com/North-Shore-AI/crucible_bench"
 
   def project do
@@ -14,6 +14,7 @@ defmodule CrucibleBench.MixProject do
       description: description(),
       package: package(),
       docs: docs(),
+      dialyzer: dialyzer(),
       source_url: @source_url,
       homepage_url: @source_url,
       name: "CrucibleBench"
@@ -30,6 +31,7 @@ defmodule CrucibleBench.MixProject do
     [
       {:statistex, "~> 1.0"},
       {:nx, "~> 0.7"},
+      {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false}
     ]
   end
@@ -49,6 +51,14 @@ defmodule CrucibleBench.MixProject do
         "Online documentation" => "https://hexdocs.pm/crucible_bench"
       },
       maintainers: ["nshkrdotcom"]
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_add_deps: :app_tree,
+      plt_add_apps: [:mix],
+      list_unused_filters: true
     ]
   end
 

@@ -7,7 +7,7 @@ defmodule CrucibleBench.Experiment do
   """
 
   alias CrucibleBench.{Analysis, Stats}
-  alias CrucibleBench.Stats.{EffectSize, Power}
+  alias CrucibleBench.Stats.{EffectSize, Power, MultipleComparisons}
 
   @doc """
   Run an experiment with automatic analysis.
@@ -117,6 +117,7 @@ defmodule CrucibleBench.Experiment do
   def run(:hyperparameter_sweep, opts) do
     configurations = Keyword.fetch!(opts, :configurations)
     labels = Keyword.get(opts, :labels, Enum.map(1..length(configurations), &"Config #{&1}"))
+    correction_method = Keyword.get(opts, :correction_method, :holm)
 
     unless length(configurations) >= 2 do
       raise ArgumentError, "Need at least 2 configurations"
@@ -126,7 +127,7 @@ defmodule CrucibleBench.Experiment do
     omnibus_result = Analysis.compare_multiple(configurations)
 
     # Calculate all pairwise comparisons
-    pairwise_results = calculate_pairwise_comparisons(configurations, labels)
+    pairwise_results = calculate_pairwise_comparisons(configurations, labels, correction_method)
 
     # Find best configuration
     means = Enum.map(configurations, &Stats.mean/1)
@@ -149,30 +150,47 @@ defmodule CrucibleBench.Experiment do
       },
       configuration_means: Enum.zip(labels, means) |> Map.new(),
       pairwise_comparisons: pairwise_results,
+      correction_method: correction_method,
       interpretation: interpret_sweep(omnibus_result, best_config, best_mean),
       raw_result: omnibus_result
     }
   end
 
-  defp calculate_pairwise_comparisons(configurations, labels) do
-    for i <- 0..(length(configurations) - 2),
-        j <- (i + 1)..(length(configurations) - 1) do
-      config_i = Enum.at(configurations, i)
-      config_j = Enum.at(configurations, j)
-      label_i = Enum.at(labels, i)
-      label_j = Enum.at(labels, j)
+  defp calculate_pairwise_comparisons(configurations, labels, correction_method) do
+    # Calculate all pairwise comparisons
+    comparisons =
+      for i <- 0..(length(configurations) - 2),
+          j <- (i + 1)..(length(configurations) - 1) do
+        config_i = Enum.at(configurations, i)
+        config_j = Enum.at(configurations, j)
+        label_i = Enum.at(labels, i)
+        label_j = Enum.at(labels, j)
 
-      result = Analysis.compare_groups(config_i, config_j)
-      effect = EffectSize.cohens_d(config_i, config_j)
+        result = Analysis.compare_groups(config_i, config_j)
+        effect = EffectSize.cohens_d(config_i, config_j)
 
-      %{
-        comparison: "#{label_i} vs #{label_j}",
-        significant?: result.p_value < 0.05,
-        p_value: result.p_value,
-        effect_size: effect.cohens_d,
-        mean_diff: Stats.mean(config_i) - Stats.mean(config_j)
-      }
-    end
+        %{
+          comparison: "#{label_i} vs #{label_j}",
+          p_value: result.p_value,
+          effect_size: effect.cohens_d,
+          mean_diff: Stats.mean(config_i) - Stats.mean(config_j)
+        }
+      end
+
+    # Apply multiple comparison correction
+    p_values = Enum.map(comparisons, & &1.p_value)
+    adjusted_p_values = MultipleComparisons.correct(p_values, method: correction_method)
+
+    # Merge adjusted p-values back into comparisons
+    Enum.zip(comparisons, adjusted_p_values)
+    |> Enum.map(fn {comp, adj_result} ->
+      Map.merge(comp, %{
+        adjusted_p_value: adj_result.adjusted_p_value,
+        significant_original: adj_result.significant_original,
+        significant_adjusted: adj_result.significant_adjusted,
+        correction_method: correction_method
+      })
+    end)
   end
 
   defp interpret_ab_test(result, effect, power_result) do

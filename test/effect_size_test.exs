@@ -28,6 +28,11 @@ defmodule CrucibleBench.Stats.EffectSizeTest do
       result = EffectSize.cohens_d(group1, group2)
       assert result.interpretation == "large"
     end
+
+    test "requires non-empty groups" do
+      assert_raise ArgumentError, fn -> EffectSize.cohens_d([], [1.0, 2.0]) end
+      assert_raise ArgumentError, fn -> EffectSize.cohens_d([1.0, 2.0], []) end
+    end
   end
 
   describe "hedges_g/2" do
@@ -56,6 +61,11 @@ defmodule CrucibleBench.Stats.EffectSizeTest do
       assert Map.has_key?(result, :sd_control)
       assert result.glass_delta > 0
     end
+
+    test "requires non-empty control and treatment" do
+      assert_raise ArgumentError, fn -> EffectSize.glass_delta([], [1.0]) end
+      assert_raise ArgumentError, fn -> EffectSize.glass_delta([1.0], []) end
+    end
   end
 
   describe "paired_cohens_d/2" do
@@ -76,6 +86,12 @@ defmodule CrucibleBench.Stats.EffectSizeTest do
 
       assert_raise ArgumentError, fn ->
         EffectSize.paired_cohens_d(before, after_data)
+      end
+    end
+
+    test "requires non-empty groups" do
+      assert_raise ArgumentError, fn ->
+        EffectSize.paired_cohens_d([], [])
       end
     end
   end

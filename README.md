@@ -37,7 +37,7 @@ Add `crucible_bench` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:crucible_bench, "~> 0.2.0"}
+    {:crucible_bench, "~> 0.2.1"}
   ]
 end
 ```
@@ -172,11 +172,45 @@ result = CrucibleBench.experiment(:ablation,
 ```elixir
 result = CrucibleBench.experiment(:hyperparameter_sweep,
   configurations: [config_a, config_b, config_c],
-  labels: ["Config A", "Config B", "Config C"]
+  labels: ["Config A", "Config B", "Config C"],
+  correction_method: :holm # or :bonferroni, :benjamini_hochberg
 )
 
 # Identifies best configuration with pairwise comparisons
+# Pairwise p-values are adjusted using the chosen correction method
 ```
+
+## Assumption Checks (Normality & Variance)
+
+```elixir
+# Normality
+NormalityTests.quick_check(data)          # fast skew/kurtosis screen
+NormalityTests.assess_normality(data)     # Shapiro-Wilk + skew/kurtosis with recommendation
+
+# Variance equality
+VarianceTests.levene_test([g1, g2, g3])   # robust Brown-Forsythe (median-centered)
+VarianceTests.f_test(g1, g2)              # classic F-test (assumes normality)
+VarianceTests.quick_check(g1, g2)         # fast variance ratio heuristic
+```
+
+- Use normality/variance checks to choose between parametric and non-parametric tests.
+- Constant or near-constant data is handled safely (no crashes).
+
+## Multiple Comparison Control
+
+```elixir
+p_values = [0.01, 0.03, 0.04, 0.20]
+
+# Adjust p-values
+MultipleComparisons.correct(p_values, method: :holm)
+MultipleComparisons.correct(p_values, method: :benjamini_hochberg, fdr_level: 0.10)
+
+# Boolean rejections (uses the same alpha/FDR level)
+MultipleComparisons.reject(p_values, method: :bonferroni)
+```
+
+- Hyperparameter sweeps automatically apply corrections (`:holm` default); set `correction_method:` and optional `fdr_level:` to change behavior.
+- Exports include original and adjusted p-values plus significance under the chosen correction.
 
 ## Export Results
 
@@ -274,6 +308,9 @@ lib/crucible_bench/
     ├── effect_size.ex                # Effect size measures
     ├── confidence_interval.ex        # CI calculations
     ├── power.ex                      # Power analysis
+    ├── multiple_comparisons.ex       # p-value corrections (FWER/FDR)
+    ├── normality_tests.ex            # Shapiro-Wilk + diagnostics
+    ├── variance_tests.ex             # Levene, F-test, variance heuristics
     └── distributions.ex              # Probability distributions
 ```
 

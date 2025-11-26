@@ -27,7 +27,13 @@ defmodule CrucibleBench.Stats.EffectSize do
       iex> result.cohens_d > 0
       true
   """
-  def cohens_d(group1, group2) do
+  def cohens_d([], _),
+    do: raise(ArgumentError, "Cohen's d requires non-empty groups")
+
+  def cohens_d(_, []),
+    do: raise(ArgumentError, "Cohen's d requires non-empty groups")
+
+  def cohens_d([_ | _] = group1, [_ | _] = group2) do
     mean1 = Stats.mean(group1)
     mean2 = Stats.mean(group2)
     var1 = Stats.variance(group1)
@@ -36,7 +42,7 @@ defmodule CrucibleBench.Stats.EffectSize do
     # Pooled standard deviation
     pooled_sd = :math.sqrt((var1 + var2) / 2)
 
-    d = (mean1 - mean2) / pooled_sd
+    d = if pooled_sd == 0.0, do: 0.0, else: (mean1 - mean2) / pooled_sd
 
     %{
       cohens_d: d,
@@ -96,12 +102,23 @@ defmodule CrucibleBench.Stats.EffectSize do
       iex> result.glass_delta > 0
       true
   """
-  def glass_delta(control, treatment) do
+  def glass_delta([], _),
+    do: raise(ArgumentError, "Glass's delta requires non-empty control and treatment groups")
+
+  def glass_delta(_, []),
+    do: raise(ArgumentError, "Glass's delta requires non-empty control and treatment groups")
+
+  def glass_delta([_ | _] = control, [_ | _] = treatment) do
     mean_control = Stats.mean(control)
     mean_treatment = Stats.mean(treatment)
     sd_control = Stats.stdev(control)
 
-    delta = (mean_treatment - mean_control) / sd_control
+    delta =
+      if sd_control == 0.0 do
+        0.0
+      else
+        (mean_treatment - mean_control) / sd_control
+      end
 
     %{
       glass_delta: delta,
@@ -127,15 +144,25 @@ defmodule CrucibleBench.Stats.EffectSize do
       true
   """
   def paired_cohens_d(group1, group2) do
-    unless length(group1) == length(group2) do
-      raise ArgumentError, "Paired effect size requires equal length groups"
+    n1 = length(group1)
+    n2 = length(group2)
+
+    cond do
+      n1 != n2 ->
+        raise ArgumentError, "Paired effect size requires equal length groups"
+
+      n1 == 0 ->
+        raise ArgumentError, "Paired effect size requires non-empty groups"
+
+      true ->
+        :ok
     end
 
     differences = Enum.zip_with(group1, group2, fn x, y -> y - x end)
     mean_diff = Stats.mean(differences)
     sd_diff = Stats.stdev(differences)
 
-    d = if sd_diff == 0, do: 0.0, else: mean_diff / sd_diff
+    d = if sd_diff == 0.0, do: 0.0, else: mean_diff / sd_diff
 
     %{
       cohens_d: d,

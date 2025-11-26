@@ -227,6 +227,8 @@ defmodule CrucibleBench.Export do
 
     ## Pairwise Comparisons
 
+    **Multiple Comparison Correction**: #{format_correction_method(Map.get(exp, :correction_method, :holm))}
+
     #{format_pairwise_comparisons(exp.pairwise_comparisons)}
 
     ## Interpretation
@@ -347,16 +349,40 @@ defmodule CrucibleBench.Export do
   end
 
   defp format_pairwise_comparisons(comparisons) do
-    """
-    | Comparison | P-value | Significant | Effect Size | Mean Diff |
-    |-----------|---------|-------------|-------------|-----------|
-    #{Enum.map_join(comparisons, "\n", &format_pairwise_row/1)}
-    """
+    # Check if comparisons have adjusted p-values (new format with corrections)
+    has_adjustment =
+      comparisons != [] and Map.has_key?(List.first(comparisons), :adjusted_p_value)
+
+    if has_adjustment do
+      """
+      | Comparison | Original p | Adjusted p | Sig (original) | Sig (adjusted) | Effect Size | Mean Diff |
+      |-----------|------------|------------|----------------|----------------|-------------|-----------|
+      #{Enum.map_join(comparisons, "\n", &format_pairwise_row_with_adjustment/1)}
+      """
+    else
+      """
+      | Comparison | P-value | Significant | Effect Size | Mean Diff |
+      |-----------|---------|-------------|-------------|-----------|
+      #{Enum.map_join(comparisons, "\n", &format_pairwise_row/1)}
+      """
+    end
   end
 
   defp format_pairwise_row(comp) do
-    sig = if comp.significant?, do: "Yes", else: "No"
+    sig = if Map.get(comp, :significant?, false), do: "Yes", else: "No"
 
     "| #{comp.comparison} | #{format_p_value(comp.p_value)} | #{sig} | #{format_number(comp.effect_size)} | #{format_diff(comp.mean_diff)} |"
   end
+
+  defp format_pairwise_row_with_adjustment(comp) do
+    sig_orig = if Map.get(comp, :significant_original, false), do: "Yes", else: "No"
+    sig_adj = if Map.get(comp, :significant_adjusted, false), do: "Yes", else: "No"
+
+    "| #{comp.comparison} | #{format_p_value(comp.p_value)} | #{format_p_value(comp.adjusted_p_value)} | #{sig_orig} | #{sig_adj} | #{format_number(comp.effect_size)} | #{format_diff(comp.mean_diff)} |"
+  end
+
+  defp format_correction_method(:bonferroni), do: "Bonferroni"
+  defp format_correction_method(:holm), do: "Holm step-down"
+  defp format_correction_method(:benjamini_hochberg), do: "Benjamini-Hochberg FDR"
+  defp format_correction_method(other), do: to_string(other)
 end

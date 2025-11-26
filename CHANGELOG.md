@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2025-11-25
+
+### Added
+- **Multiple Comparison Corrections** - Controls Type I error rates when conducting multiple tests
+  - Bonferroni correction (most conservative, controls FWER)
+  - Holm step-down method (less conservative than Bonferroni, still controls FWER)
+  - Benjamini-Hochberg FDR correction (controls false discovery rate, more powerful)
+  - New module: `CrucibleBench.Stats.MultipleComparisons`
+  - Integration with hyperparameter sweep experiments (automatic p-value adjustment)
+  - Detailed correction results with original and adjusted p-values
+
+- **Formal Normality Tests** - Statistical tests for distribution assumptions
+  - Shapiro-Wilk test (most powerful omnibus test, n = 3 to 5000)
+  - Comprehensive normality assessment combining multiple approaches
+  - Quick normality check using skewness/kurtosis thresholds
+  - New module: `CrucibleBench.Stats.NormalityTests`
+
+- **Variance Equality Tests** - Validates homogeneity of variance assumptions
+  - Levene's test (robust to non-normality, uses median-based deviations)
+  - F-test for two groups (parametric, sensitive to normality)
+  - Quick variance check using variance ratios
+  - New module: `CrucibleBench.Stats.VarianceTests`
+
+### Changed
+- Hyperparameter sweep experiments now apply multiple comparison corrections by default (Holm method)
+- Export module updated to display adjusted p-values in pairwise comparison tables
+- Experiment results include correction method information
+
+### Documentation
+- Comprehensive enhancement design document in `docs/20251125/enhancement_design.md`
+- Complete API documentation for all new modules
+- Examples demonstrating each new feature
+- Best practices for multiple comparison handling
+
+### Testing
+- 3 new comprehensive test suites (multiple_comparisons_test, normality_tests_test, variance_tests_test)
+- Property-based testing for monotonicity and boundary conditions
+- Integration tests demonstrating end-to-end functionality
+
 ## [0.2.0] - 2025-11-24
 
 ### Added
