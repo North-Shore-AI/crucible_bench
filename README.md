@@ -37,7 +37,7 @@ Add `crucible_bench` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:crucible_bench, "~> 0.2.1"}
+    {:crucible_bench, "~> 0.3.0"}
   ]
 end
 ```
@@ -47,8 +47,61 @@ Or install from GitHub:
 ```elixir
 def deps do
   [
+    {:crucible_bench, github: "North-Shore-AI/crucible_bench"}
   ]
 end
+```
+
+## Pipeline Integration
+
+CrucibleBench v0.3.0+ provides `CrucibleBench.Stage` for seamless integration with crucible_framework pipelines:
+
+```elixir
+# In your pipeline configuration
+context = %{
+  experiment: %{
+    reliability: %{
+      stats: %CrucibleIR.Reliability.Stats{
+        tests: [:ttest, :bootstrap],
+        alpha: 0.05,
+        confidence_level: 0.95,
+        bootstrap_iterations: 2000
+      }
+    }
+  },
+  outputs: [0.85, 0.87, 0.84, 0.86, 0.88]
+}
+
+# Run statistical analysis
+{:ok, updated_context} = CrucibleBench.Stage.run(context)
+
+# Access results
+updated_context.bench.tests
+# => %{
+#   ttest: %{test_type: :ttest, ...},
+#   bootstrap: %{test_type: :bootstrap, confidence_interval: {0.84, 0.88}, ...}
+# }
+
+updated_context.bench.summary
+# => %{n: 5, mean: 0.86, sd: 0.0141, median: 0.86}
+```
+
+### Using IR Configuration
+
+You can also pass `CrucibleIR.Reliability.Stats` directly to comparison functions:
+
+```elixir
+config = %CrucibleIR.Reliability.Stats{
+  alpha: 0.01,
+  confidence_level: 0.99,
+  tests: [:ttest]
+}
+
+control = [0.72, 0.68, 0.75, 0.71, 0.69]
+treatment = [0.78, 0.73, 0.81, 0.76, 0.74]
+
+result = CrucibleBench.compare(control, treatment, config)
+# Uses alpha=0.01 and 99% confidence interval
 ```
 
 ## Quick Start

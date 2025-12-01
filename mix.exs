@@ -1,7 +1,7 @@
 defmodule CrucibleBench.MixProject do
   use Mix.Project
 
-  @version "0.2.1"
+  @version "0.3.0"
   @source_url "https://github.com/North-Shore-AI/crucible_bench"
 
   def project do
@@ -31,6 +31,7 @@ defmodule CrucibleBench.MixProject do
     [
       {:statistex, "~> 1.0"},
       {:nx, "~> 0.7"},
+      {:crucible_ir, "~> 0.1.1"},
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false}
     ]

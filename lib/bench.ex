@@ -57,6 +57,14 @@ defmodule CrucibleBench do
       iex> result.p_value < 0.05
       true
 
+      # Using CrucibleIR.Reliability.Stats configuration
+      iex> config = %CrucibleIR.Reliability.Stats{alpha: 0.01, confidence_level: 0.99}
+      iex> c = [5.1, 4.9, 5.3, 5.0, 5.2]
+      iex> t = [6.2, 6.0, 6.4, 5.9, 6.1]
+      iex> result = CrucibleBench.compare(c, t, config)
+      iex> is_map(result)
+      true
+
   ## Returns
 
   A `CrucibleBench.Result` struct containing:
@@ -67,7 +75,15 @@ defmodule CrucibleBench do
   - `confidence_interval`: CI for mean difference
   - `interpretation`: Human-readable interpretation
   """
-  def compare(group1, group2, opts \\ []) do
+  def compare(group1, group2, opts \\ [])
+
+  def compare(group1, group2, %CrucibleIR.Reliability.Stats{} = config) do
+    # Convert IR config to keyword list options
+    opts = ir_config_to_opts(config)
+    Analysis.compare_groups(group1, group2, opts)
+  end
+
+  def compare(group1, group2, opts) when is_list(opts) do
     Analysis.compare_groups(group1, group2, opts)
   end
 
@@ -194,5 +210,44 @@ defmodule CrucibleBench do
   """
   def experiment(type, opts \\ []) do
     Experiment.run(type, opts)
+  end
+
+  # Private helper to convert CrucibleIR.Reliability.Stats to keyword options
+  defp ir_config_to_opts(%CrucibleIR.Reliability.Stats{} = config) do
+    opts = []
+
+    # Add confidence level if specified
+    opts =
+      if config.confidence_level,
+        do: [{:confidence_level, config.confidence_level} | opts],
+        else: opts
+
+    # Add alpha if specified
+    opts = if config.alpha, do: [{:alpha, config.alpha} | opts], else: opts
+
+    # Map test types from IR to CrucibleBench format
+    # IR uses :ttest, we use :welch_t_test or :t_test
+    opts =
+      if config.tests && :ttest in config.tests do
+        [{:test, :welch_t_test} | opts]
+      else
+        opts
+      end
+
+    # Add bootstrap iterations if specified
+    opts =
+      if config.bootstrap_iterations,
+        do: [{:bootstrap_iterations, config.bootstrap_iterations} | opts],
+        else: opts
+
+    # Add any additional options
+    opts =
+      if config.options && is_map(config.options) do
+        Enum.reduce(config.options, opts, fn {k, v}, acc -> [{k, v} | acc] end)
+      else
+        opts
+      end
+
+    opts
   end
 end

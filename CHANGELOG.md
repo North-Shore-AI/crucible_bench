@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-11-26
+
+### Added
+- **CrucibleIR Integration** - Added dependency on `crucible_ir ~> 0.1.1` for shared IR structures
+- **CrucibleBench.Stage** - New pipeline stage module for integration with crucible_framework
+  - Implements stage behaviour for use in pipeline orchestration
+  - Accepts `CrucibleIR.Reliability.Stats` configuration from experiment context
+  - Extracts and analyzes data from pipeline context (`:outputs` or `:metrics` keys)
+  - Returns comprehensive statistical analysis in `:bench` context key
+  - Supports test selection, confidence intervals, and bootstrap analysis
+  - Provides `describe/1` function for stage introspection
+- **IR Config Support** - Main `CrucibleBench.compare/3` function now accepts `CrucibleIR.Reliability.Stats` struct
+  - Automatically converts IR configuration to internal options format
+  - Maintains backwards compatibility with keyword list options
+  - Maps IR test types (`:ttest`, `:bootstrap`, etc.) to CrucibleBench implementations
+
+### Changed
+- Version bumped to 0.3.0 (MINOR version due to new functionality)
+- Enhanced `CrucibleBench` module with multi-clause function definitions for config handling
+
+### Documentation
+- Complete API documentation for `CrucibleBench.Stage` module
+- Updated README with Stage usage examples
+- Enhanced main module documentation with IR config examples
+
+### Testing
+- New comprehensive test suite for `CrucibleBench.Stage` (18 tests)
+- Tests cover context processing, error handling, config conversion, and integration
+- Property-based validation of IR config acceptance
+
 ## [0.2.1] - 2025-11-25
 
 ### Added
