@@ -37,7 +37,7 @@ Add `crucible_bench` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:crucible_bench, "~> 0.3.0"}
+    {:crucible_bench, "~> 0.3.1"}
   ]
 end
 ```
@@ -54,7 +54,7 @@ end
 
 ## Pipeline Integration
 
-CrucibleBench v0.3.0+ provides `CrucibleBench.Stage` for seamless integration with crucible_framework pipelines:
+CrucibleBench v0.3.1+ provides `CrucibleBench.Stage` for seamless integration with crucible_framework pipelines:
 
 ```elixir
 # In your pipeline configuration
@@ -84,6 +84,25 @@ updated_context.bench.tests
 
 updated_context.bench.summary
 # => %{n: 5, mean: 0.86, sd: 0.0141, median: 0.86}
+```
+
+## Inspect-AI Eval Logs
+
+CrucibleBench can adapt EvalEx results into inspect-ai-style eval logs for downstream analysis:
+
+```elixir
+metrics = [
+  %{accuracy: 1.0},
+  %{accuracy: 0.0},
+  %{accuracy: 1.0}
+]
+
+result = EvalEx.Result.new("inspect_evals/gsm8k", :testset, metrics, 3, 120)
+
+log = CrucibleBench.EvalLog.from_eval_result(result, scorer_name: "llm_judge")
+
+scores = CrucibleBench.EvalLog.Extract.eval_log_scores_dict(log)
+stderr = CrucibleBench.EvalLog.Extract.eval_log_headline_stderr(log)
 ```
 
 ### Using IR Configuration

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2025-12-24
+
+### Added
+- **EvalLog Schema:** Inspect-ai compatible evaluation log structs
+- **EvalEx Adapter:** Convert EvalEx.Result into CrucibleBench.EvalLog
+- **Metric Extraction:** Helpers mirroring inspect-ai analysis extractors
+
+### Documentation
+- README updated with EvalLog adapter usage
+- Inspect-ai parity requirements updated with current status
+
 ## [0.3.0] - 2025-11-26
 
 ### Added
