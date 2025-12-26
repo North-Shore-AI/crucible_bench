@@ -343,9 +343,7 @@ defmodule CrucibleBench.Export do
   end
 
   defp format_config_means(means) do
-    means
-    |> Enum.map(fn {name, mean} -> "| #{name} | #{format_number(mean)} |" end)
-    |> Enum.join("\n")
+    Enum.map_join(means, "\n", fn {name, mean} -> "| #{name} | #{format_number(mean)} |" end)
   end
 
   defp format_pairwise_comparisons(comparisons) do

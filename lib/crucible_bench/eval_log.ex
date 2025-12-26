@@ -152,28 +152,31 @@ defmodule CrucibleBench.EvalLog do
 
   defp build_metrics(%EvalEx.Result{} = result, opts) do
     value_lists = values_by_metric(result.metrics)
-
-    metrics =
-      result.aggregated_metrics
-      |> Enum.reduce(%{}, fn {name, stats}, acc ->
-        metric_name = to_string(name)
-        mean = metric_mean(stats, value_lists[metric_name])
-        Map.put(acc, metric_name, %EvalMetric{name: metric_name, value: mean})
-      end)
-
+    metrics = build_base_metrics(result.aggregated_metrics, value_lists)
     stderr_metrics = Keyword.get(opts, :stderr_metrics, ["accuracy"])
+    add_stderr_metrics(metrics, stderr_metrics, value_lists)
+  end
 
-    Enum.reduce(stderr_metrics, metrics, fn metric_name, acc ->
-      values = value_lists[metric_name]
-
-      if is_list(values) and length(values) > 1 do
-        stderr_name = if metric_name == "accuracy", do: "stderr", else: "#{metric_name}_stderr"
-        Map.put(acc, stderr_name, %EvalMetric{name: stderr_name, value: Metrics.stderr(values)})
-      else
-        acc
-      end
+  defp build_base_metrics(aggregated_metrics, value_lists) do
+    Enum.reduce(aggregated_metrics, %{}, fn {name, stats}, acc ->
+      metric_name = to_string(name)
+      mean = metric_mean(stats, value_lists[metric_name])
+      Map.put(acc, metric_name, %EvalMetric{name: metric_name, value: mean})
     end)
   end
+
+  defp add_stderr_metrics(metrics, stderr_metrics, value_lists) do
+    Enum.reduce(stderr_metrics, metrics, fn metric_name, acc ->
+      maybe_add_stderr(acc, metric_name, value_lists[metric_name])
+    end)
+  end
+
+  defp maybe_add_stderr(acc, metric_name, values) when is_list(values) and length(values) > 1 do
+    stderr_name = if metric_name == "accuracy", do: "stderr", else: "#{metric_name}_stderr"
+    Map.put(acc, stderr_name, %EvalMetric{name: stderr_name, value: Metrics.stderr(values)})
+  end
+
+  defp maybe_add_stderr(acc, _metric_name, _values), do: acc
 
   defp metric_mean(%{mean: mean}, _values) when is_number(mean), do: mean
 
@@ -184,16 +187,16 @@ defmodule CrucibleBench.EvalLog do
   defp metric_mean(_stats, _values), do: 0.0
 
   defp values_by_metric(metrics) when is_list(metrics) do
-    Enum.reduce(metrics, %{}, fn sample_metrics, acc ->
-      Enum.reduce(sample_metrics, acc, fn {name, value}, inner ->
-        key = to_string(name)
-
-        if is_number(value) do
-          Map.update(inner, key, [value], &[value | &1])
-        else
-          inner
-        end
-      end)
-    end)
+    Enum.reduce(metrics, %{}, &merge_sample_metrics/2)
   end
+
+  defp merge_sample_metrics(sample_metrics, acc) do
+    Enum.reduce(sample_metrics, acc, &add_metric_value/2)
+  end
+
+  defp add_metric_value({name, value}, acc) when is_number(value) do
+    Map.update(acc, to_string(name), [value], &[value | &1])
+  end
+
+  defp add_metric_value(_entry, acc), do: acc
 end

@@ -8,13 +8,13 @@ defmodule CrucibleBench.Analysis do
   alias CrucibleBench.Stats
 
   alias CrucibleBench.Stats.{
-    TTest,
-    PairedTTest,
     ANOVA,
-    MannWhitney,
-    Wilcoxon,
+    EffectSize,
     KruskalWallis,
-    EffectSize
+    MannWhitney,
+    PairedTTest,
+    TTest,
+    Wilcoxon
   }
 
   @doc """

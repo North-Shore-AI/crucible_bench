@@ -101,67 +101,71 @@ defmodule CrucibleBench.Stats.VarianceTests do
 
     var1 = Stats.variance(group1)
     var2 = Stats.variance(group2)
+    n1 = length(group1)
+    n2 = length(group2)
+
+    compute_f_test_result(var1, var2, n1, n2)
+  end
+
+  defp compute_f_test_result(var1, var2, n1, n2) do
+    both_zero = (is_nil(var1) or var1 == 0.0) and (is_nil(var2) or var2 == 0.0)
+    one_zero = var1 == 0.0 or var2 == 0.0
 
     cond do
-      (is_nil(var1) or var1 == 0.0) and (is_nil(var2) or var2 == 0.0) ->
-        %{
-          test: :f_test,
-          statistic: 1.0,
-          p_value: 1.0,
-          equal_variances: true,
-          df1: length(group1) - 1,
-          df2: length(group2) - 1,
-          var1: var1 || 0.0,
-          var2: var2 || 0.0,
-          interpretation: "Variances appear equal (both groups constant)"
-        }
-
-      var1 == 0.0 or var2 == 0.0 ->
-        # One group has zero variance; treat as highly unequal
-        {f_statistic, df1, df2} =
-          if (var1 || 0.0) >= (var2 || 0.0) do
-            {:infinity, length(group1) - 1, length(group2) - 1}
-          else
-            {:infinity, length(group2) - 1, length(group1) - 1}
-          end
-
-        %{
-          test: :f_test,
-          statistic: f_statistic,
-          p_value: 0.0,
-          equal_variances: false,
-          df1: df1,
-          df2: df2,
-          var1: var1 || 0.0,
-          var2: var2 || 0.0,
-          interpretation: "Variances significantly different (one group constant)"
-        }
-
-      true ->
-        # F = larger variance / smaller variance
-        {f_statistic, df1, df2} =
-          if var1 >= var2 do
-            {var1 / var2, length(group1) - 1, length(group2) - 1}
-          else
-            {var2 / var1, length(group2) - 1, length(group1) - 1}
-          end
-
-        # Approximate p-value using F-distribution
-        # For two-tailed test, we use 2 * P(F > f_statistic)
-        p_value = approximate_f_p_value(f_statistic, df1, df2)
-
-        %{
-          test: :f_test,
-          statistic: f_statistic,
-          p_value: p_value,
-          equal_variances: p_value > 0.05,
-          df1: df1,
-          df2: df2,
-          var1: var1,
-          var2: var2,
-          interpretation: interpret_variance_test(p_value)
-        }
+      both_zero -> build_both_constant_result(var1, var2, n1, n2)
+      one_zero -> build_one_constant_result(var1, var2, n1, n2)
+      true -> build_standard_f_result(var1, var2, n1, n2)
     end
+  end
+
+  defp build_both_constant_result(var1, var2, n1, n2) do
+    %{
+      test: :f_test,
+      statistic: 1.0,
+      p_value: 1.0,
+      equal_variances: true,
+      df1: n1 - 1,
+      df2: n2 - 1,
+      var1: var1 || 0.0,
+      var2: var2 || 0.0,
+      interpretation: "Variances appear equal (both groups constant)"
+    }
+  end
+
+  defp build_one_constant_result(var1, var2, n1, n2) do
+    {df1, df2} =
+      if (var1 || 0.0) >= (var2 || 0.0), do: {n1 - 1, n2 - 1}, else: {n2 - 1, n1 - 1}
+
+    %{
+      test: :f_test,
+      statistic: :infinity,
+      p_value: 0.0,
+      equal_variances: false,
+      df1: df1,
+      df2: df2,
+      var1: var1 || 0.0,
+      var2: var2 || 0.0,
+      interpretation: "Variances significantly different (one group constant)"
+    }
+  end
+
+  defp build_standard_f_result(var1, var2, n1, n2) do
+    {f_statistic, df1, df2} =
+      if var1 >= var2, do: {var1 / var2, n1 - 1, n2 - 1}, else: {var2 / var1, n2 - 1, n1 - 1}
+
+    p_value = approximate_f_p_value(f_statistic, df1, df2)
+
+    %{
+      test: :f_test,
+      statistic: f_statistic,
+      p_value: p_value,
+      equal_variances: p_value > 0.05,
+      df1: df1,
+      df2: df2,
+      var1: var1,
+      var2: var2,
+      interpretation: interpret_variance_test(p_value)
+    }
   end
 
   # Simplified one-way ANOVA for Levene's test

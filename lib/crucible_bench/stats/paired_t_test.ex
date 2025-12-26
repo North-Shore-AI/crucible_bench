@@ -5,7 +5,7 @@ defmodule CrucibleBench.Stats.PairedTTest do
   Compares means of two related groups (e.g., before/after measurements).
   """
 
-  alias CrucibleBench.{Stats, Result}
+  alias CrucibleBench.{Result, Stats}
   alias CrucibleBench.Stats.Distributions
 
   @doc """

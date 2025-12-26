@@ -242,61 +242,72 @@ defmodule CrucibleBench.Stats.NormalityTests do
     if n < 3 do
       {:error, "Need at least 3 observations for normality assessment"}
     else
-      # Run Shapiro-Wilk if possible
-      sw_result = shapiro_wilk(data)
+      build_normality_assessment(data, n)
+    end
+  end
 
-      # Calculate skewness and kurtosis
-      skewness = Stats.skewness(data)
-      kurtosis = Stats.kurtosis(data)
+  defp build_normality_assessment(data, n) do
+    sw_result = shapiro_wilk(data)
+    skewness = Stats.skewness(data)
+    kurtosis = Stats.kurtosis(data)
 
-      # Determine overall assessment
-      {tests_passed, tests_failed} =
-        case sw_result do
-          %{is_normal: true} -> {["Shapiro-Wilk test"], []}
-          %{is_normal: false} -> {[], ["Shapiro-Wilk test"]}
-          {:error, _} -> {[], []}
-        end
+    {tests_passed, tests_failed} = evaluate_normality_tests(sw_result, skewness, kurtosis)
+    recommendation = generate_recommendation(tests_passed, tests_failed)
 
-      # Check skewness and kurtosis
-      {tests_passed, tests_failed} =
-        if skewness != nil and abs(skewness) < 2.0 do
-          {["Skewness check" | tests_passed], tests_failed}
-        else
-          {tests_passed,
-           ["Skewness check (|skew| = #{Float.round(abs(skewness || 0), 4)})" | tests_failed]}
-        end
+    %{
+      n: n,
+      shapiro_wilk: sw_result,
+      skewness: skewness,
+      kurtosis: kurtosis,
+      tests_passed: tests_passed,
+      tests_failed: tests_failed,
+      is_normal: length(tests_failed) <= 1,
+      recommendation: recommendation
+    }
+  end
 
-      {tests_passed, tests_failed} =
-        if kurtosis != nil and abs(kurtosis) < 7.0 do
-          {["Kurtosis check" | tests_passed], tests_failed}
-        else
-          {tests_passed,
-           ["Kurtosis check (|kurt| = #{Float.round(abs(kurtosis || 0), 4)})" | tests_failed]}
-        end
+  defp evaluate_normality_tests(sw_result, skewness, kurtosis) do
+    {tests_passed, tests_failed} = evaluate_shapiro_wilk(sw_result)
+    {tests_passed, tests_failed} = evaluate_skewness(skewness, tests_passed, tests_failed)
+    evaluate_kurtosis(kurtosis, tests_passed, tests_failed)
+  end
 
-      # Overall recommendation
-      recommendation =
-        cond do
-          length(tests_failed) == 0 ->
-            "Data appears normally distributed. Parametric tests are appropriate."
+  defp evaluate_shapiro_wilk(sw_result) do
+    case sw_result do
+      %{is_normal: true} -> {["Shapiro-Wilk test"], []}
+      %{is_normal: false} -> {[], ["Shapiro-Wilk test"]}
+      {:error, _} -> {[], []}
+    end
+  end
 
-          length(tests_failed) == 1 and length(tests_passed) >= 2 ->
-            "Data marginally normal. Parametric tests acceptable with caution."
+  defp evaluate_skewness(skewness, tests_passed, tests_failed) do
+    if skewness != nil and abs(skewness) < 2.0 do
+      {["Skewness check" | tests_passed], tests_failed}
+    else
+      {tests_passed,
+       ["Skewness check (|skew| = #{Float.round(abs(skewness || 0), 4)})" | tests_failed]}
+    end
+  end
 
-          true ->
-            "Data shows significant departure from normality. Consider non-parametric tests."
-        end
+  defp evaluate_kurtosis(kurtosis, tests_passed, tests_failed) do
+    if kurtosis != nil and abs(kurtosis) < 7.0 do
+      {["Kurtosis check" | tests_passed], tests_failed}
+    else
+      {tests_passed,
+       ["Kurtosis check (|kurt| = #{Float.round(abs(kurtosis || 0), 4)})" | tests_failed]}
+    end
+  end
 
-      %{
-        n: n,
-        shapiro_wilk: sw_result,
-        skewness: skewness,
-        kurtosis: kurtosis,
-        tests_passed: tests_passed,
-        tests_failed: tests_failed,
-        is_normal: length(tests_failed) <= 1,
-        recommendation: recommendation
-      }
+  defp generate_recommendation(tests_passed, tests_failed) do
+    cond do
+      Enum.empty?(tests_failed) ->
+        "Data appears normally distributed. Parametric tests are appropriate."
+
+      length(tests_failed) == 1 and length(tests_passed) >= 2 ->
+        "Data marginally normal. Parametric tests acceptable with caution."
+
+      true ->
+        "Data shows significant departure from normality. Consider non-parametric tests."
     end
   end
 
@@ -316,38 +327,42 @@ defmodule CrucibleBench.Stats.NormalityTests do
     n = length(data)
 
     if n < 3 do
-      %{
-        is_normal: true,
-        reason: "Too few observations for reliable test, assuming normal"
-      }
+      %{is_normal: true, reason: "Too few observations for reliable test, assuming normal"}
     else
-      skewness = Stats.skewness(data)
-      kurtosis = Stats.kurtosis(data)
-
-      skew_ok = skewness == nil or abs(skewness) < 2.0
-      kurt_ok = kurtosis == nil or abs(kurtosis) < 7.0
-
-      %{
-        is_normal: skew_ok and kurt_ok,
-        skewness: skewness,
-        kurtosis: kurtosis,
-        skew_ok: skew_ok,
-        kurt_ok: kurt_ok,
-        reason:
-          if skew_ok and kurt_ok do
-            "Skewness and kurtosis within acceptable ranges"
-          else
-            issues =
-              [
-                if(!skew_ok, do: "high skewness (#{Float.round(abs(skewness || 0), 2)})"),
-                if(!kurt_ok, do: "high kurtosis (#{Float.round(abs(kurtosis || 0), 2)})")
-              ]
-              |> Enum.filter(& &1)
-              |> Enum.join(", ")
-
-            "Data shows #{issues}"
-          end
-      }
+      build_quick_check_result(data)
     end
+  end
+
+  defp build_quick_check_result(data) do
+    skewness = Stats.skewness(data)
+    kurtosis = Stats.kurtosis(data)
+
+    skew_ok = skewness == nil or abs(skewness) < 2.0
+    kurt_ok = kurtosis == nil or abs(kurtosis) < 7.0
+
+    %{
+      is_normal: skew_ok and kurt_ok,
+      skewness: skewness,
+      kurtosis: kurtosis,
+      skew_ok: skew_ok,
+      kurt_ok: kurt_ok,
+      reason: build_quick_check_reason(skew_ok, kurt_ok, skewness, kurtosis)
+    }
+  end
+
+  defp build_quick_check_reason(true, true, _skewness, _kurtosis) do
+    "Skewness and kurtosis within acceptable ranges"
+  end
+
+  defp build_quick_check_reason(skew_ok, kurt_ok, skewness, kurtosis) do
+    issues =
+      [
+        if(!skew_ok, do: "high skewness (#{Float.round(abs(skewness || 0), 2)})"),
+        if(!kurt_ok, do: "high kurtosis (#{Float.round(abs(kurtosis || 0), 2)})")
+      ]
+      |> Enum.filter(& &1)
+      |> Enum.join(", ")
+
+    "Data shows #{issues}"
   end
 end

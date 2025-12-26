@@ -280,4 +280,247 @@ defmodule CrucibleBench.StageTest do
       assert updated_context.bench.config.confidence_level == 0.95
     end
   end
+
+  describe "run/2 with two groups" do
+    test "performs t-test when control and treatment provided" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:ttest],
+              alpha: 0.05
+            }
+          }
+        },
+        control: [0.72, 0.68, 0.75, 0.71, 0.69],
+        treatment: [0.78, 0.73, 0.81, 0.76, 0.74]
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+      assert Map.has_key?(updated.bench.tests, :ttest)
+      ttest = updated.bench.tests.ttest
+
+      assert is_number(ttest.statistic)
+      assert is_number(ttest.p_value)
+      assert is_boolean(ttest.significant)
+      assert is_map(ttest.effect_size)
+    end
+
+    test "performs Mann-Whitney when mannwhitney requested" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:mannwhitney],
+              alpha: 0.05
+            }
+          }
+        },
+        control: [0.72, 0.68, 0.75, 0.71, 0.69],
+        treatment: [0.78, 0.73, 0.81, 0.76, 0.74]
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+      assert Map.has_key?(updated.bench.tests, :mannwhitney)
+      mannwhitney = updated.bench.tests.mannwhitney
+
+      assert is_number(mannwhitney.statistic)
+      assert is_number(mannwhitney.p_value)
+      assert is_boolean(mannwhitney.significant)
+    end
+  end
+
+  describe "run/2 with multiple groups" do
+    test "performs ANOVA when groups provided" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:anova],
+              alpha: 0.05
+            }
+          }
+        },
+        groups: [
+          [0.89, 0.91, 0.88, 0.90, 0.92],
+          [0.87, 0.89, 0.86, 0.88, 0.90],
+          [0.84, 0.86, 0.83, 0.85, 0.87]
+        ]
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+      assert Map.has_key?(updated.bench.tests, :anova)
+      anova = updated.bench.tests.anova
+
+      assert is_number(anova.statistic)
+      assert is_number(anova.p_value)
+      assert is_map(anova.effect_size)
+      assert Map.has_key?(anova.effect_size, :eta_squared)
+    end
+
+    test "performs Kruskal-Wallis when kruskal requested" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:kruskal],
+              alpha: 0.05
+            }
+          }
+        },
+        groups: [
+          [0.89, 0.91, 0.88, 0.90, 0.92],
+          [0.87, 0.89, 0.86, 0.88, 0.90],
+          [0.84, 0.86, 0.83, 0.85, 0.87]
+        ]
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+      assert Map.has_key?(updated.bench.tests, :kruskal)
+      kruskal = updated.bench.tests.kruskal
+
+      assert is_number(kruskal.statistic)
+      assert is_number(kruskal.p_value)
+      assert is_boolean(kruskal.significant)
+    end
+  end
+
+  describe "run/2 with paired groups" do
+    test "performs paired t-test when before and after provided" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:ttest],
+              alpha: 0.05
+            }
+          }
+        },
+        before: [0.72, 0.68, 0.75, 0.71, 0.69],
+        after: [0.78, 0.73, 0.81, 0.76, 0.74]
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+      # Should detect paired data and use paired t-test
+      assert Map.has_key?(updated.bench.tests, :ttest)
+      ttest = updated.bench.tests.ttest
+
+      assert is_number(ttest.statistic)
+      assert is_number(ttest.p_value)
+      assert is_boolean(ttest.significant)
+    end
+
+    test "performs Wilcoxon signed-rank test when wilcoxon requested" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:wilcoxon],
+              alpha: 0.05
+            }
+          }
+        },
+        before: [0.72, 0.68, 0.75, 0.71, 0.69],
+        after: [0.78, 0.73, 0.81, 0.76, 0.74]
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+      assert Map.has_key?(updated.bench.tests, :wilcoxon)
+      wilcoxon = updated.bench.tests.wilcoxon
+
+      assert is_number(wilcoxon.statistic)
+      assert is_number(wilcoxon.p_value)
+      assert is_boolean(wilcoxon.significant)
+    end
+  end
+
+  describe "metrics merging" do
+    test "merges statistical results into context.metrics" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:bootstrap],
+              alpha: 0.05
+            }
+          }
+        },
+        outputs: [0.85, 0.87, 0.84, 0.86, 0.88],
+        metrics: %{existing: 123}
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+
+      # Existing metrics preserved
+      assert updated.metrics.existing == 123
+
+      # New bench metrics added
+      assert is_number(updated.metrics.bench_n)
+      assert is_number(updated.metrics.bench_mean)
+      assert is_number(updated.metrics.bench_sd)
+      assert is_number(updated.metrics.bench_median)
+    end
+
+    test "merges p-values from tests into metrics" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:ttest],
+              alpha: 0.05
+            }
+          }
+        },
+        control: [0.72, 0.68, 0.75, 0.71, 0.69],
+        treatment: [0.78, 0.73, 0.81, 0.76, 0.74]
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+      assert is_number(updated.metrics.bench_ttest_p_value)
+    end
+
+    test "creates metrics map when none exists" do
+      context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{
+              tests: [:bootstrap],
+              alpha: 0.05
+            }
+          }
+        },
+        outputs: [0.85, 0.87, 0.84, 0.86, 0.88]
+      }
+
+      assert {:ok, updated} = Stage.run(context)
+      assert is_map(updated.metrics)
+      assert is_number(updated.metrics.bench_n)
+    end
+  end
+
+  describe "behaviour compliance" do
+    test "run/2 accepts map context and returns ok/error tuple" do
+      valid_context = %{
+        experiment: %{
+          reliability: %{
+            stats: %CrucibleIR.Reliability.Stats{tests: [:bootstrap]}
+          }
+        },
+        outputs: [1.0, 2.0, 3.0]
+      }
+
+      assert {:ok, _} = Stage.run(valid_context)
+      assert {:ok, _} = Stage.run(valid_context, %{})
+      assert {:error, _} = Stage.run(%{})
+    end
+
+    test "describe/1 returns map with required keys" do
+      result = Stage.describe(%{})
+
+      assert is_map(result)
+      assert Map.has_key?(result, :name)
+      assert Map.has_key?(result, :type)
+      assert Map.has_key?(result, :purpose)
+    end
+  end
 end

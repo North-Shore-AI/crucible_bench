@@ -37,7 +37,7 @@ Add `crucible_bench` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:crucible_bench, "~> 0.3.1"}
+    {:crucible_bench, "~> 0.3.2"}
   ]
 end
 ```
@@ -85,6 +85,77 @@ updated_context.bench.tests
 updated_context.bench.summary
 # => %{n: 5, mean: 0.86, sd: 0.0141, median: 0.86}
 ```
+
+### Advanced Stage Configuration
+
+The Stage supports multiple data layouts for different test types:
+
+```elixir
+# Two-group comparison (t-test, Mann-Whitney)
+context = %{
+  experiment: %{reliability: %{stats: stats_config}},
+  control: [0.72, 0.68, 0.75, 0.71, 0.69],
+  treatment: [0.78, 0.73, 0.81, 0.76, 0.74]
+}
+
+{:ok, ctx} = CrucibleBench.Stage.run(context)
+ctx.bench.tests.ttest
+# => %{
+#   test_type: :ttest,
+#   statistic: -3.42,
+#   p_value: 0.0089,
+#   significant: true,
+#   effect_size: %{cohens_d: -2.16, interpretation: "large"},
+#   confidence_interval: {-0.095, -0.019}
+# }
+
+# Multi-group comparison (ANOVA, Kruskal-Wallis)
+context = %{
+  experiment: %{
+    reliability: %{
+      stats: %CrucibleIR.Reliability.Stats{
+        tests: [:anova],
+        alpha: 0.05
+      }
+    }
+  },
+  groups: [
+    [0.89, 0.91, 0.88, 0.90, 0.92],  # Model A
+    [0.87, 0.89, 0.86, 0.88, 0.90],  # Model B
+    [0.84, 0.86, 0.83, 0.85, 0.87]   # Model C
+  ]
+}
+
+{:ok, ctx} = CrucibleBench.Stage.run(context)
+ctx.bench.tests.anova.effect_size.eta_squared
+# => 0.72 (large effect)
+
+# Paired comparison (paired t-test, Wilcoxon)
+context = %{
+  experiment: %{reliability: %{stats: stats_config}},
+  before: [0.72, 0.68, 0.75, 0.71, 0.69],
+  after: [0.78, 0.73, 0.81, 0.76, 0.74]
+}
+
+{:ok, ctx} = CrucibleBench.Stage.run(context)
+# Automatically uses paired t-test
+```
+
+### Metrics Merging
+
+The Stage automatically merges statistical results into `context.metrics`:
+
+```elixir
+{:ok, ctx} = CrucibleBench.Stage.run(context)
+
+ctx.metrics.bench_n           # Sample size
+ctx.metrics.bench_mean        # Mean value
+ctx.metrics.bench_sd          # Standard deviation
+ctx.metrics.bench_median      # Median value
+ctx.metrics.bench_ttest_p_value  # P-value from t-test (if run)
+```
+
+This enables downstream pipeline stages to access statistical summaries directly.
 
 ## Inspect-AI Eval Logs
 

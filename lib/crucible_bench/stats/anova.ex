@@ -6,7 +6,7 @@ defmodule CrucibleBench.Stats.ANOVA do
   one group differs significantly from the others.
   """
 
-  alias CrucibleBench.{Stats, Result}
+  alias CrucibleBench.{Result, Stats}
   alias CrucibleBench.Stats.Distributions
 
   @doc """

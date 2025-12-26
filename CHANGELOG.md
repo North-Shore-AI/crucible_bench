@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2] - 2025-12-25
+
+### Added
+- **Stage Multi-Group Support** - Stage now supports multiple data layouts:
+  - Two-group comparison: `control` and `treatment` keys for t-test, Mann-Whitney
+  - Multi-group comparison: `groups` key for ANOVA, Kruskal-Wallis
+  - Paired comparison: `before` and `after` keys for paired t-test, Wilcoxon
+- **Stage Metrics Merging** - Results automatically merged into `context.metrics`:
+  - Summary stats: `bench_n`, `bench_mean`, `bench_sd`, `bench_median`
+  - Test p-values: `bench_ttest_p_value`, `bench_anova_p_value`, etc.
+- **Stage Type Specifications** - Added `@spec` declarations for public functions
+- **Stage Behaviour Compliance** - Conditional `@behaviour Crucible.Stage` when available
+- **Updated SVG** - Professional bell curve design for `crucible_bench.svg`
+- **Current State Documentation** - Added `docs/20251225/current_state.md` with complete module reference
+- **Gap Analysis** - Added `docs/20251225/gaps.md` with improvement opportunities
+- **Implementation Guide** - Added `docs/20251225/implementation_prompt.md` for Stage enhancements
+
+### Fixed
+- **Credo Strict Compliance** - All 18 issues resolved:
+  - Number formatting (`20700` → `20_700`)
+  - Alphabetically sorted aliases across 7 files
+  - `Enum.map_join/3` instead of `Enum.map/2 |> Enum.join/2`
+  - Reduced function arity using map parameters
+  - Extracted helpers to reduce cyclomatic complexity and nesting depth
+  - Replaced `length/1 == 0` with `Enum.empty?/1`
+
+### Changed
+- **Dependencies Updated**:
+  - `crucible_ir` upgraded from `~> 0.1.1` to `~> 0.2.0`
+  - `eval_ex` upgraded from `~> 0.1.2` to `~> 0.1.4`
+  - Added `credo ~> 1.7` as dev/test dependency
+
+### Documentation
+- README updated with Advanced Stage Configuration section
+- README updated with Metrics Merging section
+
+### Testing
+- New test suite for two-group comparisons
+- New test suite for multi-group comparisons (ANOVA, Kruskal-Wallis)
+- New test suite for paired comparisons (paired t-test, Wilcoxon)
+- New test suite for metrics merging
+- New test suite for behaviour compliance
+
 ## [0.3.1] - 2025-12-24
 
 ### Added

@@ -31,9 +31,9 @@ defmodule CrucibleBench do
   4. **Peer-Review Ready**: Publication-quality output
   """
 
-  alias CrucibleBench.Stats
   alias CrucibleBench.Analysis
   alias CrucibleBench.Experiment
+  alias CrucibleBench.Stats
 
   @doc """
   Compare two independent groups with automatic test selection.

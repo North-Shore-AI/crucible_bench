@@ -67,13 +67,7 @@ defmodule CrucibleBench.Stats.Distributions do
 
       y * numerator / denominator
     else
-      r = if y > 0, do: p, else: 1 - p
-      r = :math.log(-:math.log(r))
-
-      Enum.reduce(Enum.with_index(c), 0, fn {coef, i}, acc ->
-        acc + coef * :math.pow(r, i)
-      end)
-      |> then(fn result -> if y < 0, do: -result, else: result end)
+      compute_normal_quantile_tail(p, y, c)
     end
   end
 
@@ -106,46 +100,53 @@ defmodule CrucibleBench.Stats.Distributions do
       # Hill's algorithm for t-distribution quantile
       a = 1 / (df - 0.5)
       b = 48 / (a * a)
-      c = ((20700 * a / b - 98) * a - 16) * a + 96.36
+      c = ((20_700 * a / b - 98) * a - 16) * a + 96.36
       d = ((94.5 / (b + c) - 3) / b + 1) * :math.sqrt(a * :math.pi() / 2) * df
       y = :math.pow(d * p, 2 / df)
 
       y =
         if y > 0.05 + a do
-          x = normal_quantile(p)
-          y_temp = x * x
-
-          c =
-            if df < 5 do
-              c + 0.3 * (df - 4.5) * (x + 0.6)
-            else
-              c
-            end
-
-          c =
-            (((0.05 * d * x - 5) * x - 7) * x - 2) * x + b +
-              c
-
-          y_temp =
-            (((((0.4 * y_temp + 6.3) * y_temp + 36) * y_temp + 94.5) / c - y_temp - 3) / b + 1) *
-              x
-
-          y_temp = a * y_temp * y_temp
-
-          if y_temp > 0.002 do
-            :math.exp(y_temp) - 1
-          else
-            0.5 * y_temp * y_temp + y_temp
-          end
+          compute_t_quantile_large(df, p, a, b, c, d)
         else
           ((1 / (((df + 6) / (df * y) - 0.089 * d - 0.822) * (df + 2) * 3) + 0.5 / (df + 4)) * y -
              1) * (df + 1) / (df + 2) + 1 / y
         end
 
-      :math.sqrt(df * y)
-      |> then(fn result -> if p < 0.5, do: -result, else: result end)
+      result = :math.sqrt(df * y)
+      if p < 0.5, do: -result, else: result
     end
   end
+
+  # Helper for t_quantile when y > 0.05 + a
+  defp compute_t_quantile_large(df, p, a, b, c, d) do
+    x = normal_quantile(p)
+    y_temp = x * x
+
+    c = if df < 5, do: c + 0.3 * (df - 4.5) * (x + 0.6), else: c
+    c = (((0.05 * d * x - 5) * x - 7) * x - 2) * x + b + c
+
+    y_temp =
+      (((((0.4 * y_temp + 6.3) * y_temp + 36) * y_temp + 94.5) / c - y_temp - 3) / b + 1) * x
+
+    y_temp = a * y_temp * y_temp
+    compute_y_from_y_temp(y_temp)
+  end
+
+  # Helper function for normal_quantile tail computation
+  defp compute_normal_quantile_tail(p, y, c) do
+    r = if y > 0, do: p, else: 1 - p
+    r = :math.log(-:math.log(r))
+
+    result =
+      Enum.reduce(Enum.with_index(c), 0, fn {coef, i}, acc ->
+        acc + coef * :math.pow(r, i)
+      end)
+
+    if y < 0, do: -result, else: result
+  end
+
+  defp compute_y_from_y_temp(y_temp) when y_temp > 0.002, do: :math.exp(y_temp) - 1
+  defp compute_y_from_y_temp(y_temp), do: 0.5 * y_temp * y_temp + y_temp
 
   @doc """
   F-distribution CDF.
@@ -287,30 +288,27 @@ defmodule CrucibleBench.Stats.Distributions do
 
   defp incomplete_gamma_p(a, x, max_iter \\ 100) do
     if x < a + 1 do
-      # Use series representation
-      ap = a
-      del = 1.0 / a
-      sum = del
+      compute_incomplete_gamma_series(a, x, max_iter)
+    else
+      1.0 - incomplete_gamma_q_cf(a, x)
+    end
+  end
 
+  defp compute_incomplete_gamma_series(a, x, max_iter) do
+    ap = a
+    del = 1.0 / a
+    sum = del
+
+    result =
       Enum.reduce_while(1..max_iter, {sum, del, ap}, fn _n, {sum, del, ap} ->
         ap = ap + 1
         del = del * x / ap
         sum = sum + del
+        if abs(del) < abs(sum) * 1.0e-10, do: {:halt, sum}, else: {:cont, {sum, del, ap}}
+      end)
 
-        if abs(del) < abs(sum) * 1.0e-10 do
-          {:halt, sum * :math.exp(-x + a * :math.log(x) - log_gamma(a))}
-        else
-          {:cont, {sum, del, ap}}
-        end
-      end)
-      |> then(fn
-        {sum, _, _} -> sum * :math.exp(-x + a * :math.log(x) - log_gamma(a))
-        result -> result
-      end)
-    else
-      # Use continued fraction
-      1.0 - incomplete_gamma_q_cf(a, x)
-    end
+    final_sum = if is_tuple(result), do: elem(result, 0), else: result
+    final_sum * :math.exp(-x + a * :math.log(x) - log_gamma(a))
   end
 
   defp incomplete_gamma_q_cf(a, x, max_iter \\ 100) do

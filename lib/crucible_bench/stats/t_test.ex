@@ -6,7 +6,7 @@ defmodule CrucibleBench.Stats.TTest do
   differ significantly.
   """
 
-  alias CrucibleBench.{Stats, Result}
+  alias CrucibleBench.{Result, Stats}
   alias CrucibleBench.Stats.Distributions
 
   @doc """
@@ -52,7 +52,20 @@ defmodule CrucibleBench.Stats.TTest do
 
     # Confidence interval
     conf_level = Keyword.get(opts, :confidence_level, 0.95)
-    ci = confidence_interval(mean1, mean2, var1, var2, n1, n2, df, conf_level, var_equal)
+
+    ci_params = %{
+      mean1: mean1,
+      mean2: mean2,
+      var1: var1,
+      var2: var2,
+      n1: n1,
+      n2: n2,
+      df: df,
+      conf_level: conf_level,
+      var_equal: var_equal
+    }
+
+    ci = confidence_interval(ci_params)
 
     %Result{
       test: if(var_equal, do: :student_t_test, else: :welch_t_test),
@@ -101,7 +114,17 @@ defmodule CrucibleBench.Stats.TTest do
     {t, df}
   end
 
-  defp confidence_interval(mean1, mean2, var1, var2, n1, n2, df, conf_level, var_equal) do
+  defp confidence_interval(%{
+         mean1: mean1,
+         mean2: mean2,
+         var1: var1,
+         var2: var2,
+         n1: n1,
+         n2: n2,
+         df: df,
+         conf_level: conf_level,
+         var_equal: var_equal
+       }) do
     mean_diff = mean1 - mean2
 
     se =

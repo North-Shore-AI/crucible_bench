@@ -7,7 +7,7 @@ defmodule CrucibleBench.Experiment do
   """
 
   alias CrucibleBench.{Analysis, Stats}
-  alias CrucibleBench.Stats.{EffectSize, Power, MultipleComparisons}
+  alias CrucibleBench.Stats.{EffectSize, MultipleComparisons, Power}
 
   @doc """
   Run an experiment with automatic analysis.

@@ -1,42 +1,118 @@
-<svg width="200" height="240" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="grad_crucible_bench" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4B0082;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#4B0082;stop-opacity:0.7" />
+    <!-- Gradients for scientific aesthetic -->
+    <linearGradient id="hexOuterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2d5a8c;stop-opacity:1" />
     </linearGradient>
+
+    <linearGradient id="bellCurveGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#4a90e2;stop-opacity:0.9" />
+      <stop offset="60%" style="stop-color:#2d5a8c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a3a5a;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e74c3c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#27ae60;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Subtle glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="0.8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Clipping path for hexagon -->
+    <clipPath id="hexClip">
+      <path d="M 100,20 L 165,55 L 165,145 L 100,180 L 35,145 L 35,55 Z"/>
+    </clipPath>
   </defs>
 
-  <!-- Hexagon shape (Elixir style) -->
-  <path d="M 100,5 L 190,62.5 L 190,177.5 L 100,235 L 10,177.5 L 10,62.5 Z"
-        fill="url(#grad_crucible_bench)"
-        stroke="#FFFFFF"
-        stroke-width="3"/>
+  <!-- Outer hexagon frame -->
+  <path d="M 100,20 L 165,55 L 165,145 L 100,180 L 35,145 L 35,55 Z"
+        fill="url(#hexOuterGrad)"
+        stroke="#ffffff"
+        stroke-width="2"
+        filter="url(#shadow)"/>
 
-  <!-- Inner hexagon for depth -->
-  <path d="M 100,25 L 170,67.5 L 170,172.5 L 100,215 L 30,172.5 L 30,67.5 Z"
+  <!-- Inner decorative hexagon for depth -->
+  <path d="M 100,30 L 155,60 L 155,140 L 100,170 L 45,140 L 45,60 Z"
         fill="none"
-        stroke="#FFFFFF"
-        stroke-width="1"
+        stroke="#ffffff"
+        stroke-width="0.8"
+        opacity="0.15"/>
+
+  <!-- Background circle for bell curve -->
+  <circle cx="100" cy="95" r="48"
+          fill="#0a1f2e"
+          opacity="0.4"/>
+
+  <!-- Bell curve (normal distribution) - main shape -->
+  <path d="M 55,110 Q 65,70 75,65 Q 85,60 95,62 Q 100,61 105,62 Q 115,60 125,65 Q 135,70 145,110"
+        fill="url(#bellCurveGrad)"
+        stroke="#ffffff"
+        stroke-width="1.2"
+        opacity="0.95"
+        filter="url(#glow)"/>
+
+  <!-- Filled area under bell curve -->
+  <path d="M 55,110 Q 65,70 75,65 Q 85,60 95,62 Q 100,61 105,62 Q 115,60 125,65 Q 135,70 145,110 L 145,115 Q 135,115 125,115 Q 115,115 100,116 Q 85,115 75,115 Q 65,115 55,115 Z"
+        fill="url(#bellCurveGrad)"
         opacity="0.3"/>
 
-  <!-- Letter/Icon in center -->
-  <text x="100" y="135"
-        font-family="Arial, sans-serif"
-        font-size="80"
-        font-weight="bold"
-        fill="#FFFFFF"
-        text-anchor="middle">
-    B
-  </text>
+  <!-- Center line (mean/μ) -->
+  <line x1="100" y1="62" x2="100" y2="115"
+        stroke="#ffffff"
+        stroke-width="1.2"
+        opacity="0.8"
+        stroke-dasharray="2,2"/>
 
-  <!-- Small text at bottom -->
-  <text x="100" y="210"
-        font-family="Arial, sans-serif"
-        font-size="14"
-        font-weight="normal"
-        fill="#FFFFFF"
-        text-anchor="middle"
-        opacity="0.9">
-    Bench
-  </text>
+  <!-- Significance threshold line (left) - red -->
+  <line x1="75" y1="65" x2="75" y2="115"
+        stroke="#e74c3c"
+        stroke-width="1"
+        opacity="0.7"/>
+
+  <!-- Significance threshold line (right) - green -->
+  <line x1="125" y1="65" x2="125" y2="115"
+        stroke="#27ae60"
+        stroke-width="1"
+        opacity="0.7"/>
+
+  <!-- Micro text labels -->
+  <!-- μ symbol (mean) -->
+  <text x="100" y="128" font-family="serif" font-size="10" fill="#ffffff" text-anchor="middle" opacity="0.9">μ</text>
+
+  <!-- σ symbols (standard deviation) -->
+  <text x="75" y="128" font-family="serif" font-size="8" fill="#e74c3c" text-anchor="middle" opacity="0.8">σ</text>
+  <text x="125" y="128" font-family="serif" font-size="8" fill="#27ae60" text-anchor="middle" opacity="0.8">σ</text>
+
+  <!-- p-value indicator label -->
+  <text x="100" y="145" font-family="Arial, sans-serif" font-size="7" fill="#b8b8b8" text-anchor="middle" opacity="0.75">p-value</text>
+
+  <!-- Small statistical symbols in corners -->
+  <!-- Top left: t-test indicator -->
+  <circle cx="45" cy="35" r="3" fill="#e74c3c" opacity="0.6"/>
+  <text x="45" y="37" font-family="Arial, sans-serif" font-size="6" fill="#ffffff" text-anchor="middle" opacity="0.7">t</text>
+
+  <!-- Top right: ANOVA indicator -->
+  <circle cx="155" cy="35" r="3" fill="#27ae60" opacity="0.6"/>
+  <text x="155" y="37" font-family="Arial, sans-serif" font-size="6" fill="#ffffff" text-anchor="middle" opacity="0.7">F</text>
+
+  <!-- Power analysis indicator (bottom) -->
+  <path d="M 100,165 L 105,172 L 100,180 L 95,172 Z" fill="#4a90e2" opacity="0.7"/>
+
+  <!-- Subtle grid lines for scientific rigor -->
+  <line x1="55" y1="90" x2="145" y2="90" stroke="#ffffff" stroke-width="0.5" opacity="0.1"/>
+  <line x1="55" y1="100" x2="145" y2="100" stroke="#ffffff" stroke-width="0.5" opacity="0.1"/>
+  <line x1="55" y1="110" x2="145" y2="110" stroke="#ffffff" stroke-width="0.5" opacity="0.1"/>
 </svg>
