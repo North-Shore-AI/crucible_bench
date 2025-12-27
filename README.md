@@ -37,7 +37,7 @@ Add `crucible_bench` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:crucible_bench, "~> 0.3.2"}
+    {:crucible_bench, "~> 0.4.0"}
   ]
 end
 ```
@@ -52,9 +52,38 @@ def deps do
 end
 ```
 
+## Stage Contract
+
+`CrucibleBench.Stage` implements the `Crucible.Stage` behaviour from crucible_framework.
+
+### Options
+
+- `:tests` - Statistical tests to run (default: `[:ttest]`)
+- `:alpha` - Significance level (default: 0.05)
+- `:confidence_level` - Confidence level (default: 0.95)
+- `:bootstrap_iterations` - Bootstrap iterations (default: 1000)
+- `:data_source` - Data source (`:outputs`, `:metrics`, or `{:custom, fn}`)
+
+### Schema Introspection
+
+```elixir
+# Get stage schema
+schema = CrucibleBench.Stage.describe(%{})
+# => %{
+#   __schema_version__: "1.0.0",
+#   name: :bench,
+#   description: "Statistical benchmarking and hypothesis testing",
+#   required: [],
+#   optional: [:tests, :alpha, :confidence_level, :bootstrap_iterations, :data_source],
+#   types: %{...},
+#   defaults: %{tests: [:ttest], alpha: 0.05, ...},
+#   __extensions__: %{bench: %{...}}
+# }
+```
+
 ## Pipeline Integration
 
-CrucibleBench v0.3.1+ provides `CrucibleBench.Stage` for seamless integration with crucible_framework pipelines:
+CrucibleBench v0.4.0+ provides `CrucibleBench.Stage` for seamless integration with crucible_framework pipelines:
 
 ```elixir
 # In your pipeline configuration

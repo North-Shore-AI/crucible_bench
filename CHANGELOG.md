@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2025-12-26
+
+### Changed
+- **Normalized describe/1 to canonical schema format** - Stage now returns a consistent schema:
+  - `name` changed from string (`"CrucibleBench.Stage"`) to atom (`:bench`)
+  - Added `__schema_version__: "1.0.0"` marker for schema evolution
+  - Added `required`, `optional`, `types`, `defaults` fields for option validation
+  - Moved analysis metadata to `__extensions__.bench` namespace
+  - Removed `verbose` mode (all metadata now in `__extensions__`)
+- **Added crucible_framework dependency** - Now requires `crucible_framework ~> 0.5.0`
+- **Behaviour now mandatory** - Uses `@behaviour Crucible.Stage` unconditionally with `@impl true`
+
+### Added
+- Schema version marker (`__schema_version__: "1.0.0"`)
+- Conformance tests for stage contract (`test/crucible_bench/conformance_test.exs`)
+- Type specifications in schema for all options:
+  - `:tests` - List of statistical test enums
+  - `:alpha` - Float for significance level
+  - `:confidence_level` - Float for confidence level
+  - `:bootstrap_iterations` - Integer for bootstrap iterations
+  - `:data_source` - Enum for data source selection
+
+### Documentation
+- README updated with Stage Contract section
+- README updated with Schema Introspection example
+- Installation version updated to 0.4.0
+
 ## [0.3.2] - 2025-12-25
 
 ### Added

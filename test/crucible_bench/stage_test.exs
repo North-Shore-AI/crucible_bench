@@ -189,52 +189,90 @@ defmodule CrucibleBench.StageTest do
   end
 
   describe "describe/1" do
-    test "returns basic metadata without verbose option" do
-      result = Stage.describe()
+    test "returns canonical schema format" do
+      schema = Stage.describe(%{})
 
-      assert is_map(result)
-      assert result.name == "CrucibleBench.Stage"
-      assert result.type == :analysis
-      assert result.purpose == "Statistical testing and analysis"
-      assert is_list(result.inputs)
-      assert is_list(result.outputs)
-      assert result.config_source == "experiment.reliability.stats"
+      # Core fields
+      assert schema.name == :bench
+      assert is_atom(schema.name)
+      assert is_binary(schema.description)
+      assert is_list(schema.required)
+      assert is_list(schema.optional)
+      assert is_map(schema.types)
     end
 
-    test "returns detailed metadata with verbose option" do
-      result = Stage.describe(%{verbose: true})
+    test "includes schema version marker" do
+      schema = Stage.describe(%{})
 
-      assert is_map(result)
-      assert result.name == "CrucibleBench.Stage"
-      assert Map.has_key?(result, :available_tests)
-      assert Map.has_key?(result, :effect_sizes)
-      assert Map.has_key?(result, :corrections)
-      assert Map.has_key?(result, :requirements)
-
-      assert is_list(result.available_tests)
-      assert :ttest in result.available_tests
-      assert :bootstrap in result.available_tests
+      assert schema.__schema_version__ == "1.0.0"
     end
 
-    test "includes correct test types in verbose mode" do
-      result = Stage.describe(%{verbose: true})
+    test "optional fields include expected options" do
+      schema = Stage.describe(%{})
 
-      expected_tests = [:ttest, :bootstrap, :anova, :mannwhitney, :wilcoxon, :kruskal]
-      assert Enum.all?(expected_tests, &(&1 in result.available_tests))
+      expected_optional = [:tests, :alpha, :confidence_level, :bootstrap_iterations, :data_source]
+
+      for opt <- expected_optional do
+        assert opt in schema.optional, "Missing optional field: #{opt}"
+      end
     end
 
-    test "includes correct effect sizes in verbose mode" do
-      result = Stage.describe(%{verbose: true})
+    test "types map contains all optional fields" do
+      schema = Stage.describe(%{})
+
+      for key <- schema.optional do
+        assert Map.has_key?(schema.types, key),
+               "Optional field #{key} missing from types"
+      end
+    end
+
+    test "defaults are provided for common options" do
+      schema = Stage.describe(%{})
+
+      assert Map.has_key?(schema, :defaults)
+      assert schema.defaults.tests == [:ttest]
+      assert schema.defaults.alpha == 0.05
+      assert schema.defaults.confidence_level == 0.95
+      assert schema.defaults.bootstrap_iterations == 1000
+    end
+
+    test "extensions contain analysis metadata" do
+      schema = Stage.describe(%{})
+
+      assert Map.has_key?(schema, :__extensions__)
+      assert Map.has_key?(schema.__extensions__, :bench)
+      assert schema.__extensions__.bench.type == :analysis
+
+      expected_tests = [
+        :ttest,
+        :paired_ttest,
+        :bootstrap,
+        :wilcoxon,
+        :mann_whitney,
+        :anova,
+        :kruskal_wallis
+      ]
+
+      assert schema.__extensions__.bench.available_tests == expected_tests
+    end
+
+    test "extensions include effect sizes and corrections" do
+      schema = Stage.describe(%{})
 
       expected_effects = [:cohens_d, :eta_squared, :omega_squared]
-      assert Enum.all?(expected_effects, &(&1 in result.effect_sizes))
-    end
-
-    test "includes correct correction methods in verbose mode" do
-      result = Stage.describe(%{verbose: true})
+      assert schema.__extensions__.bench.effect_sizes == expected_effects
 
       expected_corrections = [:bonferroni, :holm, :benjamini_hochberg]
-      assert Enum.all?(expected_corrections, &(&1 in result.corrections))
+      assert schema.__extensions__.bench.corrections == expected_corrections
+    end
+
+    test "all optional fields have types" do
+      schema = Stage.describe(%{})
+
+      for key <- schema.optional do
+        assert Map.has_key?(schema.types, key),
+               "Optional field #{key} missing from types"
+      end
     end
   end
 
@@ -514,13 +552,16 @@ defmodule CrucibleBench.StageTest do
       assert {:error, _} = Stage.run(%{})
     end
 
-    test "describe/1 returns map with required keys" do
-      result = Stage.describe(%{})
+    test "describe/1 returns canonical schema with required keys" do
+      schema = Stage.describe(%{})
 
-      assert is_map(result)
-      assert Map.has_key?(result, :name)
-      assert Map.has_key?(result, :type)
-      assert Map.has_key?(result, :purpose)
+      assert is_map(schema)
+      assert Map.has_key?(schema, :__schema_version__)
+      assert Map.has_key?(schema, :name)
+      assert Map.has_key?(schema, :description)
+      assert Map.has_key?(schema, :required)
+      assert Map.has_key?(schema, :optional)
+      assert Map.has_key?(schema, :types)
     end
   end
 end

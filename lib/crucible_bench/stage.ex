@@ -45,8 +45,9 @@ defmodule CrucibleBench.Stage do
 
   alias CrucibleBench.Stats
 
-  # Conditionally use behaviour if crucible_framework is available
-  if Code.ensure_loaded?(Crucible.Stage) do
+  @has_crucible_stage Code.ensure_loaded?(Crucible.Stage)
+
+  if @has_crucible_stage do
     @behaviour Crucible.Stage
   end
 
@@ -80,6 +81,7 @@ defmodule CrucibleBench.Stage do
   - `{:ok, context}` - Updated context with bench results and merged metrics
   - `{:error, reason}` - If configuration or data is missing/invalid
   """
+  if @has_crucible_stage, do: @impl(true)
   @spec run(context(), opts()) :: {:ok, context()} | {:error, error_reason()}
   def run(context, opts \\ %{}) when is_map(context) do
     with {:ok, stats_config} <- extract_stats_config(context),
@@ -122,45 +124,65 @@ defmodule CrucibleBench.Stage do
   @doc """
   Describes this stage for introspection.
 
-  Returns metadata about the stage including its purpose, requirements, and
-  configuration options.
+  Returns a canonical schema describing the stage's configuration options,
+  types, and metadata. Implements the `Crucible.Stage` behaviour contract.
 
-  ## Options
-
-  - `:verbose` - Include detailed information (default: false)
+  The schema follows the canonical format with:
+  - `__schema_version__` - Schema version for evolution
+  - `name` - Stage identifier (atom)
+  - `description` - Human-readable description
+  - `required` - Required option keys
+  - `optional` - Optional option keys
+  - `types` - Type specifications for all options
+  - `defaults` - Default values for optional fields
+  - `__extensions__` - Domain-specific metadata
   """
+  if @has_crucible_stage, do: @impl(true)
   @spec describe(opts()) :: map()
-  def describe(opts \\ %{}) do
-    verbose = Map.get(opts, :verbose, false)
-
-    base = %{
-      name: "CrucibleBench.Stage",
-      type: :analysis,
-      purpose: "Statistical testing and analysis",
-      inputs: [:outputs, :metrics, :control, :treatment, :groups, :before, :after],
-      outputs: [:bench, :metrics],
-      config_source: "experiment.reliability.stats"
+  def describe(_opts \\ %{}) do
+    %{
+      __schema_version__: "1.0.0",
+      name: :bench,
+      description: "Statistical benchmarking and hypothesis testing",
+      required: [],
+      optional: [:tests, :alpha, :confidence_level, :bootstrap_iterations, :data_source],
+      types: %{
+        tests:
+          {:list,
+           {:enum,
+            [:ttest, :paired_ttest, :bootstrap, :wilcoxon, :mann_whitney, :anova, :kruskal_wallis]}},
+        alpha: :float,
+        confidence_level: :float,
+        bootstrap_iterations: :integer,
+        data_source: {:enum, [:outputs, :metrics, {:custom, :function}]}
+      },
+      defaults: %{
+        tests: [:ttest],
+        alpha: 0.05,
+        confidence_level: 0.95,
+        bootstrap_iterations: 1000
+      },
+      __extensions__: %{
+        bench: %{
+          type: :analysis,
+          purpose: "Statistical testing and analysis",
+          config_source: "experiment.reliability.stats",
+          inputs: [:outputs, :metrics, :control, :treatment, :groups, :before, :after],
+          outputs: [:bench, :metrics],
+          available_tests: [
+            :ttest,
+            :paired_ttest,
+            :bootstrap,
+            :wilcoxon,
+            :mann_whitney,
+            :anova,
+            :kruskal_wallis
+          ],
+          effect_sizes: [:cohens_d, :eta_squared, :omega_squared],
+          corrections: [:bonferroni, :holm, :benjamini_hochberg]
+        }
+      }
     }
-
-    if verbose do
-      Map.merge(base, %{
-        available_tests: [:ttest, :bootstrap, :anova, :mannwhitney, :wilcoxon, :kruskal],
-        effect_sizes: [:cohens_d, :eta_squared, :omega_squared],
-        corrections: [:bonferroni, :holm, :benjamini_hochberg],
-        requirements: [
-          "CrucibleIR.Reliability.Stats configuration",
-          "Numeric data in one of the supported layouts"
-        ],
-        data_layouts: [
-          "Single group: :outputs or :metrics",
-          "Two groups: :control and :treatment",
-          "Multiple groups: :groups",
-          "Paired: :before and :after"
-        ]
-      })
-    else
-      base
-    end
   end
 
   # Private Functions
